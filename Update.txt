@@ -1,0 +1,123 @@
+https://derflounder.wordpress.com/2023/03/04/setting-a-user-account-to-automatically-log-in-using-sysadminctl-on-macos-ventura/
+
+Setting a user account to automatically log in using sysadminctl on macOS Ventura
+March 4, 2023rtroutonLeave a commentGo to comments
+On macOS, it’s possible to set an account to automatically log in. However, up until macOS Ventura, there hasn’t been an Apple command line tool available which will do the following:
+
+Set the desired account to automatically log in
+Create the /etc/kcpassword file
+Setting the desired account to log in could be accomplished by running the following command with root privileges:
+
+
+
+/usr/bin/defaults write /Library/Preferences/com.apple.loginwindow autoLoginUser -string username_goes_here
+view raw
+
+gistfile1.txt
+
+hosted with ❤ by GitHub
+The hard part was correctly creating the /etc/kcpassword file, which stores an obfuscated copy of the password used by the account which is being set for auto-login. Without that file properly created and available in the specified location, the automatic login process would fail. For those interested in how the kcpassword file is set up, please see the link below:
+
+https://www.offsec.com/offsec/in-the-hunt-for-the-auto-login-setup-process/
+
+There have been several tools built by the community which successfully create the kcpassword file, but Apple themselves hadn’t provided a way to do this in macOS Monterey or earlier, outside of using the GUI for Users & Groups in System Preferences.
+
+Screen Shot 2023 03 04 at 12 49 59 PM
+
+As of macOS Ventura, the sysadminctl command line tool has been updated with functionality to enable and disable auto-login for specified accounts. For more details, please see below the jump.
+
+As of macOS Ventura 13.2.1, the help output for the sysadminctl tool includes the following options:
+
+
+
+    2023-03-03 15:25:06.223 sysadminctl[35718:252330] Usage: sysadminctl
+	-deleteUser <user name> [-secure || -keepHome] (interactive || -adminUser <administrator user name> -adminPassword <administrator password>)
+	-newPassword <new password> -oldPassword <old password> [-passwordHint <password hint>]
+	-resetPasswordFor <local user name> -newPassword <new password> [-passwordHint <password hint>] (interactive] || -adminUser <administrator user name> -adminPassword <administrator password>)
+	-addUser <user name> [-fullName <full name>] [-UID <user ID>] [-GID <group ID>] [-shell <path to shell>] [-password <user password>] [-hint <user hint>] [-home <full path to home>] [-admin] [-roleAccount] [-picture <full path to user image>] (interactive] || -adminUser <administrator user name> -adminPassword <administrator password>)
+	-secureTokenStatus <user name>
+	-secureTokenOn <user name> -password <password> (interactive || -adminUser <administrator user name> -adminPassword <administrator password>)
+	-secureTokenOff <user name> -password <password> (interactive || -adminUser <administrator user name> -adminPassword <administrator password>)
+	-autologin set -userName <user name> [-password <user password>] || off || status (interactive || -adminUser <administrator user name> -adminPassword <administrator password>)
+	-guestAccount <on || off || status>
+	-afpGuestAccess <on || off || status>
+	-smbGuestAccess <on || off || status>
+	-automaticTime <on || off || status>
+	-filesystem status
+	-screenLock <status || immediate || off || seconds> -password <password>
+
+Pass '-' instead of password in commands above to request prompt.
+'-adminPassword' used mostly for scripted operation. Use '-' or 'interactive' to get the authentication string interactively. This preferred for security reasons
+
+	*Role accounts require name starting with _ and UID in 200-400 range.
+view raw
+
+gistfile1.txt
+
+hosted with ❤ by GitHub
+One of the options is the new-as-of-Ventura -autologin option. To set an account to auto-login, you will need to have the following:
+
+The username of the account you want to have auto-login
+The password to that account
+Some way to run the sysadminctl tool using root privileges
+Once you have all conditions satisfied, you can set the desired account to auto-login by running the following command with root privileges:
+
+
+
+sysadminctl -autologin set -userName username_goes_here -password password_goes_here
+view raw
+
+gistfile1.txt
+
+hosted with ❤ by GitHub
+Screenshot 2023 03 04 at 11 58 32 AM
+
+If you want to be prompted for the desired account’s password, enter a dash ( – ) where you would otherwise enter the desired account’s password when running the following command with root privileges:
+
+
+
+sysadminctl -autologin set -userName username_goes_here -password –
+view raw
+
+gistfile1.txt
+
+hosted with ❤ by GitHub
+Screenshot 2023 03 04 at 12 00 52 PM
+
+Once an account has been set to auto-login, you can verify by checking in System Setting’s Users & Groups preference pane.
+
+Screenshot 2023 03 04 at 11 59 10 AM
+
+You can also check by running the following command:
+
+
+
+sysadminctl -autologin status
+view raw
+
+gistfile1.txt
+
+hosted with ❤ by GitHub
+Screenshot 2023 03 04 at 12 11 14 PM
+
+To disable auto-login, run the following command with root privileges:
+
+
+
+sysadminctl -autologin off
+view raw
+
+gistfile1.txt
+
+hosted with ❤ by GitHub
+Screenshot 2023 03 04 at 12 04 07 PM
+
+Once auto-login has been disabled, you can verify by checking in System Setting’s Users & Groups preference pane.
+
+Screenshot 2023 03 04 at 11 59 51 AM
+
+You can also check by running the following command:
+
+
+
+sysadminctl -autologin status
